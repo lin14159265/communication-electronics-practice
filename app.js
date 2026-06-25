@@ -49,6 +49,7 @@ function bindEvents() {
   $('uncertainBtn').addEventListener('click', toggleUncertain);
   $('masteredBtn').addEventListener('click', toggleMastered);
   $('dontKnowBtn').addEventListener('click', dontKnow);
+  $('typeFilter').addEventListener('change', () => syncRangeOptions());
   $('advancedStartBtn').addEventListener('click', startAdvanced);
   $('exportBtn').addEventListener('click', exportRecords);
   $('exportWrongBtn').addEventListener('click', exportWrongMarkdown);
@@ -56,6 +57,7 @@ function bindEvents() {
   $('clearBtn').addEventListener('click', clearRecords);
   $('finishBtn').addEventListener('click', finishRound);
   window.addEventListener('beforeunload', persistSession);
+  syncRangeOptions();
 }
 
 function showView(view) {
@@ -105,6 +107,7 @@ function startAdvanced() {
 }
 
 function readAdvancedPrefs(save) {
+  syncRangeOptions();
   const prefs = {
     type: $('typeFilter').value,
     range: $('rangeFilter').value,
@@ -119,6 +122,38 @@ function readAdvancedPrefs(save) {
     savePreferences();
   }
   return prefs;
+}
+
+function syncRangeOptions() {
+  const type = $('typeFilter').value;
+  const range = $('rangeFilter');
+  const current = range.value;
+  const options = rangeOptionsForType(type);
+  range.innerHTML = options.map(opt => `<option value="${opt.value}">${opt.label}</option>`).join('');
+  range.value = options.some(opt => opt.value === current) ? current : options[0].value;
+}
+
+function rangeOptionsForType(type) {
+  if (type === 'single') return [
+    { value: 'all', label: '全部单选 1-152' },
+    { value: '1-50', label: '1-50 单选题' },
+    { value: '51-100', label: '51-100 单选题' },
+    { value: '101-152', label: '101-152 单选后段' },
+  ];
+  if (type === 'multiple') return [
+    { value: '153-157', label: '153-157 多选题' },
+  ];
+  if (type === 'blank') return [
+    { value: '158-206', label: '158-206 填空题' },
+  ];
+  return [
+    { value: 'all', label: '全部 1-206' },
+    { value: '1-50', label: '1-50' },
+    { value: '51-100', label: '51-100' },
+    { value: '101-152', label: '101-152 单选后段' },
+    { value: '153-157', label: '153-157 多选题' },
+    { value: '158-206', label: '158-206 填空题' },
+  ];
 }
 
 function filterByTypeAndRange(pool, prefs) {
