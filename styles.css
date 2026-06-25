@@ -106,6 +106,8 @@ img { max-width: 100%; height: auto; vertical-align: middle; }
 .explanation { display:none; margin-top:14px; border-top:1px solid var(--line); padding-top:14px; color:var(--text); }
 .explanation.show { display:block; }
 .explanation .md { white-space: pre-wrap; font-size: 15px; }
+.math-inline { display:inline-block; font-family: "Cambria Math", "Times New Roman", serif; background:color-mix(in srgb, var(--panel-2) 72%, transparent); border:1px solid color-mix(in srgb, var(--line) 70%, transparent); border-radius:6px; padding:0 4px; margin:0 1px; line-height:1.45; white-space:nowrap; }
+.math-inline sub, .math-inline sup { line-height:0; font-size:0.72em; }
 .side-panel { position: sticky; top: 76px; }
 .progress-line { height:10px; background:var(--panel-2); border-radius:999px; overflow:hidden; margin: 12px 0; }
 .progress-line > div { height:100%; width:0; background:var(--primary); }

@@ -557,6 +557,7 @@ function renderMarkdown(md) {
   if (!md) return '';
   let html = escapeHTML(md);
   html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, alt, src) => `<img class="md-img" src="${escapeAttr(src)}" alt="${escapeAttr(alt || '题目图片/公式')}" loading="lazy">`);
+  html = html.replace(/\$([^$\n]+)\$/g, (_, formula) => `<span class="math-inline">${formatFormula(formula)}</span>`);
   html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
   html = html.replace(/`([^`]+)`/g, '<span class="kbd">$1</span>');
   html = html.replace(/\n/g, '<br>');
@@ -564,6 +565,80 @@ function renderMarkdown(md) {
 }
 function renderMarkdownInline(s) { return renderMarkdown(String(s || '')).replace(/<br>/g,' '); }
 function stripMarkdownImages(s) { return String(s || '').replace(/!\[[^\]]*\]\([^)]+\)/g, '[图/公式]'); }
+function formatFormula(formula) {
+  return replaceLatexCommandWithOneArg(
+    replaceLatexCommandWithOneArg(
+      replaceLatexCommandWithTwoArgs(String(formula || ''), ['dfrac', 'frac'], (a, b) => `(${a})/(${b})`),
+      'sqrt',
+      value => `√(${value})`
+    ),
+    'mathrm',
+    value => value
+  )
+    .replace(/\\cos/g, 'cos')
+    .replace(/\\sin/g, 'sin')
+    .replace(/\\pi/g, 'π')
+    .replace(/\\omega/g, 'ω')
+    .replace(/\\Omega/g, 'Ω')
+    .replace(/\\Delta/g, 'Δ')
+    .replace(/\\lambda/g, 'λ')
+    .replace(/\\eta/g, 'η')
+    .replace(/\\theta/g, 'θ')
+    .replace(/\\approx/g, '≈')
+    .replace(/\\le/g, '≤')
+    .replace(/\\ge/g, '≥')
+    .replace(/\\times/g, '×')
+    .replace(/\\pm/g, '±')
+    .replace(/\\,/g, ' ')
+    .replace(/_\{([^{}]+)\}/g, '<sub>$1</sub>')
+    .replace(/\^\{([^{}]+)\}/g, '<sup>$1</sup>')
+    .replace(/_([A-Za-z0-9]+)/g, '<sub>$1</sub>')
+    .replace(/\^([A-Za-z0-9]+)/g, '<sup>$1</sup>')
+    .replace(/\\/g, '');
+}
+function replaceLatexCommandWithTwoArgs(text, names, render) {
+  return replaceLatexCommand(text, names, 2, args => render(args[0], args[1]));
+}
+function replaceLatexCommandWithOneArg(text, name, render) {
+  return replaceLatexCommand(text, [name], 1, args => render(args[0]));
+}
+function replaceLatexCommand(text, names, argCount, render) {
+  let out = '';
+  for (let i = 0; i < text.length;) {
+    const name = names.find(n => text.startsWith(`\\${n}`, i));
+    if (!name) {
+      out += text[i++];
+      continue;
+    }
+    let cursor = i + name.length + 1;
+    const args = [];
+    for (let a = 0; a < argCount; a++) {
+      const parsed = parseLatexBracedArg(text, cursor);
+      if (!parsed) break;
+      args.push(parsed.value);
+      cursor = parsed.end;
+    }
+    if (args.length !== argCount) {
+      out += text[i++];
+      continue;
+    }
+    out += render(args);
+    i = cursor;
+  }
+  return out;
+}
+function parseLatexBracedArg(text, start) {
+  if (text[start] !== '{') return null;
+  let depth = 0;
+  for (let i = start; i < text.length; i++) {
+    if (text[i] === '{') depth++;
+    else if (text[i] === '}') {
+      depth--;
+      if (depth === 0) return { value: text.slice(start + 1, i), end: i + 1 };
+    }
+  }
+  return null;
+}
 function escapeHTML(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function escapeAttr(s) { return escapeHTML(s).replace(/`/g, '&#96;'); }
 function badge(text, kind='') { return `<span class="badge ${kind}">${escapeHTML(text)}</span>`; }
