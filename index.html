@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#255bd6">
+  <title>通信电子线路刷题系统</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand"><div class="logo">CE</div><div>通信电子线路刷题系统<br><span class="footer-note">独立题库 · 本地记录 · 考前高效刷题</span></div></div>
+      <nav class="nav" aria-label="主导航">
+        <button data-view="home" class="active">首页</button>
+        <button data-view="practice">做题</button>
+        <button data-view="settings">设置与数据</button>
+        <button data-view="stats">统计</button>
+        <button id="themeBtn" type="button">深色</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="app-shell">
+    <section id="view-home" class="view active">
+      <div class="hero">
+        <div class="card">
+          <h1>选择题、多选题、填空题刷题答卷</h1>
+          <p>本网站只包含“通信电子线路”新课程题库：单选 152 题、多选 5 题、填空 49 题。不会导入或混合原单片机题库。</p>
+          <div class="quick-grid">
+            <button class="quick-card" data-start="sequential"><strong>顺序练习</strong><span>按题号从前往后扫题，适合第一轮过题。</span></button>
+            <button class="quick-card" data-start="random"><strong>随机练习</strong><span>打乱顺序，避免只记住题号位置。</span></button>
+            <button class="quick-card" data-start="wrong"><strong>错题重练</strong><span>按错误次数优先，集中处理失分点。</span></button>
+            <button class="quick-card" data-start="unmastered"><strong>未掌握 / 待复习</strong><span>包含错题、不确定题和查看答案题。</span></button>
+          </div>
+          <div id="restoreBox" class="card hidden" style="margin-top:14px; box-shadow:none;">
+            <b>检测到上次未完成的练习</b>
+            <p class="footer-note">可以继续，也可以放弃进度重新开始。</p>
+            <button id="restoreBtn" class="primary-btn">恢复练习</button>
+            <button id="discardSessionBtn" class="secondary-btn">放弃进度</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="stats-grid">
+            <div class="stat"><b id="homeTotal">206</b><span>总题数</span></div>
+            <div class="stat"><b id="homeDone">0</b><span>已做</span></div>
+            <div class="stat"><b id="homeWrong">0</b><span>错题</span></div>
+            <div class="stat"><b id="homeUncertain">0</b><span>待复习</span></div>
+            <div class="stat"><b>152</b><span>单选题</span></div>
+            <div class="stat"><b>5</b><span>多选题</span></div>
+            <div class="stat"><b>49</b><span>填空题</span></div>
+            <div class="stat"><b id="homeAcc">—</b><span>正确率</span></div>
+          </div>
+          <p class="footer-note">学习记录保存在当前浏览器 localStorage。换设备或清缓存前，请在“设置与数据”中导出记录。</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-practice" class="view">
+      <div class="practice-layout">
+        <article class="card">
+          <div class="question-head">
+            <div>
+              <div class="badges"><span id="modeName" class="badge primary">未开始</span><span id="progressText" class="badge">第 0 / 0 题</span></div>
+              <div class="progress-line"><div id="progressBar"></div></div>
+            </div>
+            <div id="questionMeta" class="badges"></div>
+          </div>
+          <div id="stemBox" class="stem empty">请从首页开始练习。</div>
+          <div id="tagsBox" class="badges" style="margin-top:12px;"></div>
+          <div id="optionsBox" class="options"></div>
+          <div id="blankBox" class="blank-list"></div>
+          <div id="resultBox" class="result">
+            <h3 id="resultTitle" style="margin:0 0 8px;"></h3>
+            <div id="resultDetail"></div>
+            <button id="toggleExplainBtn" class="secondary-btn" style="margin-top:10px;">查看解析</button>
+            <div id="explanationBox" class="explanation"></div>
+          </div>
+          <div class="actionbar">
+            <button id="prevBtn" class="secondary-btn">上一题</button>
+            <button id="bookmarkBtn" class="secondary-btn">收藏</button>
+            <button id="uncertainBtn" class="secondary-btn">不确定</button>
+            <button id="dontKnowBtn" class="secondary-btn">不会/看答案</button>
+            <button id="masteredBtn" class="secondary-btn">标记掌握</button>
+            <button id="submitBtn" class="primary-btn">提交答案</button>
+            <button id="nextBtn" class="secondary-btn">下一题</button>
+            <button id="finishBtn" class="danger-btn hidden">完成本轮</button>
+          </div>
+        </article>
+        <aside class="card side-panel">
+          <h3 style="margin-top:0;">本轮题目</h3>
+          <p id="miniStats" class="footer-note">暂无练习记录。</p>
+          <div id="questionNavigator" class="navigator"></div>
+        </aside>
+      </div>
+    </section>
+
+    <section id="view-settings" class="view">
+      <div class="card" style="margin-top:18px;">
+        <h2 style="margin-top:0;">练习设置</h2>
+        <div class="form-grid">
+          <div class="form-row"><label>题型</label><select id="typeFilter"><option value="all">全部题型</option><option value="single">单选题</option><option value="multiple">多选题</option><option value="blank">填空题</option></select></div>
+          <div class="form-row"><label>题号范围</label><select id="rangeFilter"><option value="all">全部 1-206</option><option value="1-50">1-50</option><option value="51-100">51-100</option><option value="101-152">101-152 单选后段</option><option value="153-157">153-157 多选题</option><option value="158-206">158-206 填空题</option></select></div>
+          <div class="form-row"><label>题池</label><select id="poolFilter"><option value="all">全部题目</option><option value="undone">未做题</option><option value="wrong">做错过的题</option><option value="unmastered">未掌握题</option><option value="bookmarked">收藏题</option><option value="uncertain">不确定 / 待复习</option></select></div>
+          <div class="form-row"><label>顺序</label><select id="orderFilter"><option value="sequential">顺序</option><option value="random">随机</option></select></div>
+          <div class="form-row"><label>本轮题数，0 表示不限</label><input id="countFilter" type="number" min="0" value="0"></div>
+          <div class="form-row"><label>最少错误次数</label><input id="minWrongFilter" type="number" min="0" value="0"></div>
+          <div class="form-row"><label>判题方式</label><select id="judgeModeFilter"><option value="instant">即时判题</option><option value="batch">批量提交</option></select></div>
+        </div>
+        <p><button id="advancedStartBtn" class="primary-btn">按以上设置开始练习</button></p>
+      </div>
+
+      <div class="card" style="margin-top:18px;">
+        <h2 style="margin-top:0;">学习记录</h2>
+        <p class="footer-note">导出的是学习记录，不是题库。可用于换浏览器、换设备或备份。</p>
+        <button id="exportBtn" class="secondary-btn">导出学习记录 JSON</button>
+        <button id="exportWrongBtn" class="secondary-btn">导出错题 / 待复习 Markdown</button>
+        <label class="secondary-btn" style="display:inline-block;">导入学习记录 <input id="importFile" type="file" accept="application/json" class="hidden"></label>
+        <button id="clearBtn" class="danger-btn">清空学习记录</button>
+      </div>
+    </section>
+
+    <section id="view-stats" class="view">
+      <div class="card" style="margin-top:18px;">
+        <h2 style="margin-top:0;">做题统计</h2>
+        <div id="statsCards" class="stats-grid"></div>
+      </div>
+      <div class="card" style="margin-top:18px;">
+        <h2 style="margin-top:0;">学习记录明细</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>题号</th><th>题型</th><th>作答</th><th>正确</th><th>错误</th><th>状态</th><th>操作</th></tr></thead>
+            <tbody id="recordsTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+  <div id="toast" class="toast"></div>
+  <script src="questions.js"></script>
+  <script src="app.js"></script>
+  <script>if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('./service-worker.js').catch(()=>{});</script>
+</body>
+</html>

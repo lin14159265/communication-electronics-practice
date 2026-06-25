@@ -1,0 +1,18 @@
+{
+  "name": "通信电子线路刷题系统",
+  "short_name": "通信刷题",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f7fb",
+  "theme_color": "#255bd6",
+  "description": "通信电子线路选择题、多选题、填空题独立刷题网页。",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
