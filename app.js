@@ -115,7 +115,8 @@ function readAdvancedPrefs(save) {
     order: $('orderFilter').value,
     count: Number($('countFilter').value) || 0,
     minWrong: Number($('minWrongFilter').value) || 0,
-    batchMode: $('judgeModeFilter').value === 'batch'
+    batchMode: $('judgeModeFilter').value === 'batch',
+    singleSubmitMode: $('singleSubmitModeFilter').value || 'auto'
   };
   if (save) {
     preferences.advanced = prefs;
@@ -259,8 +260,16 @@ function selectOption(q, key) {
   if (q.type === 'single') state.selected = [key];
   else if (state.selected.includes(key)) state.selected = state.selected.filter(k => k !== key);
   else state.selected = [...state.selected, key].sort();
+  if (q.type === 'single' && shouldAutoSubmitSingle()) {
+    submitCurrent();
+    return;
+  }
   saveSessionAnswer(false);
   renderQuestion();
+}
+
+function shouldAutoSubmitSingle() {
+  return !state.batchMode && !state.submitted && $('singleSubmitModeFilter').value !== 'manual';
 }
 
 function renderQuestionActions(q, rec) {
