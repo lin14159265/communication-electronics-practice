@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ce-practice-v1';
+const CACHE_NAME = 'ce-practice-v2';
 const ASSETS = [
   "index.html",
   "styles.css",
