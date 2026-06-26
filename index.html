@@ -22,98 +22,87 @@
   <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
   <style>
     .explain-paper {
-      margin-top: 8px;
-      padding: 18px 20px 20px;
+      margin-top: 10px;
+      padding: 22px 24px 24px;
       background: var(--panel);
       color: var(--text);
       border: 1px solid var(--line);
-      border-radius: 14px;
+      border-radius: 10px;
       box-shadow: none;
       font-size: 16px;
-      line-height: 1.85;
+      line-height: 1.95;
       letter-spacing: .01em;
     }
     .explain-paper::before {
-      content: "教辅详解";
+      content: "教师详解";
       display: block;
-      margin-bottom: 12px;
+      margin: 0 0 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--line);
       color: var(--text);
-      font-size: 18px;
+      font-size: 19px;
       font-weight: 900;
       letter-spacing: .03em;
-      padding-bottom: 8px;
-      border-bottom: 1px solid var(--line);
     }
-    .explain-section {
-      margin: 12px 0;
-      padding: 12px 14px;
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: 12px;
-    }
-    .explain-section-title {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 8px;
-      color: var(--text);
-      font-weight: 900;
+    .lecture-answer {
+      margin: 4px 0 16px;
       font-size: 16px;
     }
-    .explain-section-title::before {
-      content: attr(data-no);
-      display: inline-grid;
-      place-items: center;
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      background: var(--panel-2);
-      color: var(--muted);
-      border: 1px solid var(--line);
-      font-size: 13px;
-      font-weight: 800;
-      flex: 0 0 auto;
+    .lecture-answer b,
+    .lecture-section-title {
+      color: var(--text);
+      font-weight: 900;
     }
-    .explain-section-body {
+    .lecture-section {
+      margin: 15px 0 0;
+    }
+    .lecture-section-title {
+      margin: 0 0 7px;
+      font-size: 16px;
+    }
+    .lecture-section-title::after {
+      content: "";
+    }
+    .lecture-body {
       color: var(--text);
     }
-    .explain-section-process {
-      background: var(--panel-2);
-      border-left: 4px solid var(--line);
-    }
-    .explain-section-background,
-    .explain-section-method,
-    .explain-section-pitfall,
-    .explain-section-conclusion {
-      background: var(--panel);
-    }
-    .explain-section-pitfall,
-    .explain-section-conclusion {
-      border-left: 4px solid var(--line);
-    }
-    .explain-p {
-      margin: .46em 0;
+    .lecture-p {
+      margin: .38em 0;
       text-align: left;
+      text-indent: 0;
     }
-    .explain-p:first-child { margin-top: 0; }
-    .explain-p:last-child { margin-bottom: 0; }
-    .explain-formula-line {
+    .lecture-list {
+      margin: 8px 0 8px 1.35em;
+      padding: 0;
+    }
+    .lecture-list li {
+      margin: 5px 0;
+      padding-left: .25em;
+    }
+    .lecture-formula-line {
       display: block;
       text-align: center;
-      margin: 10px 0;
+      margin: 12px 0;
       padding: 2px 0;
       overflow-x: auto;
+    }
+    .lecture-muted {
+      color: var(--muted);
     }
     .explain-paper .mjx-container[jax="SVG"] {
       max-width: 100%;
       overflow-x: auto;
       overflow-y: hidden;
     }
+    .explain-paper hr {
+      border: 0;
+      border-top: 1px solid var(--line);
+      margin: 14px 0;
+    }
     @media (max-width: 600px) {
-      .explain-paper { padding: 14px 12px; font-size: 15px; line-height: 1.75; }
-      .explain-section { padding: 11px 12px; }
-      .explain-section-title { font-size: 15px; }
-      .explain-formula-line { text-align: left; }
+      .explain-paper { padding: 16px 14px; font-size: 15px; line-height: 1.8; border-radius: 8px; }
+      .lecture-formula-line { text-align: left; }
+      .lecture-list { margin-left: 1.15em; }
     }
   </style>
 </head>
@@ -259,7 +248,7 @@
         '读题方法': ['审题方法', 'method'],
         '解题过程': ['详细解析', 'process'],
         '易错点': ['易错提醒', 'pitfall'],
-        '结论': ['答案结论', 'conclusion']
+        '结论': ['答案', 'conclusion']
       };
       let timer = 0;
       const observer = new MutationObserver(schedulePaperize);
@@ -279,24 +268,33 @@
         const raw = md.innerHTML.trim();
         if (!/^1\.\s*考点[：:]/.test(raw)) return;
         const parts = raw.split(/(?:<br\s*\/?>(?:\s|&nbsp;)*){2,}/i).map(s => s.trim()).filter(Boolean);
-        const sections = [];
+        const sections = {};
         for (const part of parts) {
           const m = part.match(/^(\d+)\.\s*([^：:]+)[：:]\s*([\s\S]*)$/);
           if (!m) continue;
-          const no = m[1];
           const key = m[2].trim();
           const body = m[3].trim();
           const info = titleMap[key] || [key, 'normal'];
-          sections.push({ no, title: info[0], kind: info[1], body });
+          sections[info[1]] = { title: info[0], body };
         }
-        if (sections.length < 3) return;
-        md.innerHTML = '<div class="explain-paper">' + sections.map(sec => {
-          return `<section class="explain-section explain-section-${sec.kind}"><div class="explain-section-title" data-no="${sec.no}">${sec.title}</div><div class="explain-section-body">${formatBody(sec.body, sec.kind)}</div></section>`;
-        }).join('') + '</div>';
+        if (!sections.topic || !sections.conclusion) return;
+        const order = ['topic', 'process', 'background', 'method', 'pitfall'];
+        let html = '<div class="explain-paper">';
+        html += `<div class="lecture-answer"><b>答案：</b>${formatInline(sections.conclusion.body)}</div>`;
+        html += `<div class="lecture-section"><div class="lecture-section-title">考点定位：</div><div class="lecture-body">${formatInline(sections.topic.body)}</div></div>`;
+        for (const kind of order) {
+          if (kind === 'topic' || !sections[kind]) continue;
+          html += `<div class="lecture-section lecture-${kind}"><div class="lecture-section-title">${sections[kind].title}：</div><div class="lecture-body">${formatBody(sections[kind].body, kind)}</div></div>`;
+        }
+        html += '</div>';
+        md.innerHTML = html;
         md.dataset.paperized = '1';
         if (window.MathJax && typeof MathJax.typesetPromise === 'function') {
           MathJax.typesetPromise([md]).catch(() => {});
         }
+      }
+      function formatInline(body) {
+        return `<span>${body.trim()}</span>`;
       }
       function formatBody(body, kind) {
         const normalized = body.replace(/<br\s*\/?>(\s*)/gi, '\n').replace(/\s*\n\s*/g, '\n').trim();
@@ -304,15 +302,16 @@
         return segments.map(seg => {
           const s = seg.trim();
           if (!s) return '';
-          if (isFormulaOnly(s)) return `<div class="explain-formula-line">${s}</div>`;
-          return `<p class="explain-p">${s}</p>`;
+          if (isFormulaOnly(s)) return `<div class="lecture-formula-line">${s}</div>`;
+          if (/^[A-D]\s*[项：:]/.test(s) || /^[（(]?\d+[）)]/.test(s)) return `<p class="lecture-p lecture-item">${s}</p>`;
+          return `<p class="lecture-p">${s}</p>`;
         }).join('');
       }
       function splitText(text, kind) {
         const primary = splitByPunctuation(text, '。；');
         const result = [];
         for (const item of primary) {
-          if (item.length > 110 && kind === 'process') result.push(...splitByPunctuation(item, '，'));
+          if (item.length > 115 && kind === 'process') result.push(...splitByPunctuation(item, '，'));
           else result.push(item);
         }
         return result;
