@@ -20,6 +20,106 @@
     };
   </script>
   <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+  <style>
+    .explain-paper {
+      margin-top: 8px;
+      padding: 20px 22px 22px;
+      background: #fbfcff;
+      color: #1b2536;
+      border: 1px solid #d7e2f2;
+      border-top: 5px solid #2f6fbd;
+      border-radius: 14px;
+      box-shadow: 0 10px 28px rgba(25, 71, 132, .10);
+      font-size: 16px;
+      line-height: 1.9;
+      letter-spacing: .02em;
+    }
+    .explain-paper::before {
+      content: "教辅详解";
+      display: inline-block;
+      margin-bottom: 14px;
+      color: #2f6fbd;
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: .04em;
+      border-bottom: 3px solid #d9e8ff;
+      padding-bottom: 4px;
+    }
+    .explain-section {
+      margin: 14px 0;
+      padding: 14px 16px;
+      background: #ffffff;
+      border: 1px solid #e3eaf5;
+      border-radius: 12px;
+    }
+    .explain-section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      color: #225fae;
+      font-weight: 900;
+      font-size: 16px;
+    }
+    .explain-section-title::before {
+      content: attr(data-no);
+      display: inline-grid;
+      place-items: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #2f6fbd;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 800;
+    }
+    .explain-section-body {
+      color: #263246;
+    }
+    .explain-section-process {
+      background: #f4f8ff;
+      border-left: 5px solid #2f6fbd;
+    }
+    .explain-section-background,
+    .explain-section-method {
+      background: #f8fbff;
+    }
+    .explain-section-pitfall {
+      background: #fff8eb;
+      border-color: #f1d6a4;
+      border-left: 5px solid #d28a10;
+    }
+    .explain-section-pitfall .explain-section-title {
+      color: #9a6100;
+    }
+    .explain-section-pitfall .explain-section-title::before {
+      background: #d28a10;
+    }
+    .explain-section-conclusion {
+      background: #eef8f2;
+      border-color: #cae8d5;
+      border-left: 5px solid #1d8d55;
+    }
+    .explain-section-conclusion .explain-section-title {
+      color: #167347;
+    }
+    .explain-section-conclusion .explain-section-title::before {
+      background: #1d8d55;
+    }
+    .explain-paper .mjx-container[jax="SVG"] {
+      margin: 0 .12em;
+      color: #1d2433;
+    }
+    :root.dark .explain-paper,
+    :root.dark .explain-section {
+      color: #1b2536;
+    }
+    @media (max-width: 600px) {
+      .explain-paper { padding: 16px 14px; font-size: 15px; line-height: 1.8; }
+      .explain-section { padding: 12px; }
+      .explain-section-title { font-size: 15px; }
+    }
+  </style>
 </head>
 <body>
   <header class="topbar">
@@ -155,6 +255,55 @@
   <script src="questions.js"></script>
   <script src="app.js"></script>
   <script src="mathjax-support.js"></script>
+  <script>
+    (function () {
+      const titleMap = {
+        '考点': ['考点定位', 'topic'],
+        '必要背景': ['速成理解', 'background'],
+        '读题方法': ['审题方法', 'method'],
+        '解题过程': ['详细解析', 'process'],
+        '易错点': ['易错提醒', 'pitfall'],
+        '结论': ['答案结论', 'conclusion']
+      };
+      let timer = 0;
+      const observer = new MutationObserver(schedulePaperize);
+      document.addEventListener('DOMContentLoaded', () => {
+        observer.observe(document.body, { childList: true, subtree: true });
+        schedulePaperize();
+      });
+      function schedulePaperize() {
+        clearTimeout(timer);
+        timer = setTimeout(paperizeAll, 20);
+      }
+      function paperizeAll() {
+        document.querySelectorAll('.explanation .md').forEach(paperizeOne);
+      }
+      function paperizeOne(md) {
+        if (md.dataset.paperized === '1') return;
+        const raw = md.innerHTML.trim();
+        if (!/^1\.\s*考点[：:]/.test(raw)) return;
+        const parts = raw.split(/(?:<br\s*\/?>(?:\s|&nbsp;)*){2,}/i).map(s => s.trim()).filter(Boolean);
+        const sections = [];
+        for (const part of parts) {
+          const m = part.match(/^(\d+)\.\s*([^：:]+)[：:]\s*([\s\S]*)$/);
+          if (!m) continue;
+          const no = m[1];
+          const key = m[2].trim();
+          const body = m[3].trim();
+          const info = titleMap[key] || [key, 'normal'];
+          sections.push({ no, title: info[0], kind: info[1], body });
+        }
+        if (sections.length < 3) return;
+        md.innerHTML = '<div class="explain-paper">' + sections.map(sec => {
+          return `<section class="explain-section explain-section-${sec.kind}"><div class="explain-section-title" data-no="${sec.no}">${sec.title}</div><div class="explain-section-body">${sec.body}</div></section>`;
+        }).join('') + '</div>';
+        md.dataset.paperized = '1';
+        if (window.MathJax && typeof MathJax.typesetPromise === 'function') {
+          MathJax.typesetPromise([md]).catch(() => {});
+        }
+      }
+    })();
+  </script>
   <script>if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('./service-worker.js').catch(()=>{});</script>
 </body>
 </html>
