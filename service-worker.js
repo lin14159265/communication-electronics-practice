@@ -1,9 +1,10 @@
-const CACHE_NAME = 'ce-practice-v13';
+const CACHE_NAME = 'ce-practice-v14';
 const ASSETS = [
   "index.html",
   "styles.css",
   "app.js",
   "questions.js",
+  "extra-explanations.js",
   "mathjax-support.js",
   "manifest.webmanifest",
   "icon.svg",
@@ -76,12 +77,28 @@ self.addEventListener('fetch', event => {
 
 function networkFirst(request) {
   return fetch(request)
+    .then(resp => maybeInjectIndex(request, resp))
     .then(resp => {
       const copy = resp.clone();
       caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
       return resp;
     })
     .catch(() => caches.match(request).then(cached => cached || caches.match('index.html')));
+}
+
+function maybeInjectIndex(request, resp) {
+  const url = new URL(request.url);
+  const isIndex = url.pathname.endsWith('/') || url.pathname.endsWith('/index.html');
+  if (!isIndex) return Promise.resolve(resp);
+  return resp.clone().text().then(html => {
+    if (html.includes('extra-explanations.js')) return resp;
+    const injected = html.replace('<script src="mathjax-support.js"></script>', '<script src="extra-explanations.js"></script>\n  <script src="mathjax-support.js"></script>');
+    return new Response(injected, {
+      status: resp.status,
+      statusText: resp.statusText,
+      headers: { 'Content-Type': 'text/html; charset=utf-8' }
+    });
+  });
 }
 
 function cacheFirst(request) {
