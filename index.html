@@ -23,33 +23,32 @@
   <style>
     .explain-paper {
       margin-top: 8px;
-      padding: 20px 22px 22px;
-      background: #fbfcff;
-      color: #1b2536;
-      border: 1px solid #d7e2f2;
-      border-top: 5px solid #2f6fbd;
+      padding: 18px 20px 20px;
+      background: var(--panel);
+      color: var(--text);
+      border: 1px solid var(--line);
       border-radius: 14px;
-      box-shadow: 0 10px 28px rgba(25, 71, 132, .10);
+      box-shadow: none;
       font-size: 16px;
-      line-height: 1.9;
-      letter-spacing: .02em;
+      line-height: 1.85;
+      letter-spacing: .01em;
     }
     .explain-paper::before {
       content: "教辅详解";
-      display: inline-block;
-      margin-bottom: 14px;
-      color: #2f6fbd;
+      display: block;
+      margin-bottom: 12px;
+      color: var(--text);
       font-size: 18px;
       font-weight: 900;
-      letter-spacing: .04em;
-      border-bottom: 3px solid #d9e8ff;
-      padding-bottom: 4px;
+      letter-spacing: .03em;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--line);
     }
     .explain-section {
-      margin: 14px 0;
-      padding: 14px 16px;
-      background: #ffffff;
-      border: 1px solid #e3eaf5;
+      margin: 12px 0;
+      padding: 12px 14px;
+      background: var(--panel);
+      border: 1px solid var(--line);
       border-radius: 12px;
     }
     .explain-section-title {
@@ -57,7 +56,7 @@
       align-items: center;
       gap: 8px;
       margin-bottom: 8px;
-      color: #225fae;
+      color: var(--text);
       font-weight: 900;
       font-size: 16px;
     }
@@ -68,56 +67,53 @@
       width: 24px;
       height: 24px;
       border-radius: 50%;
-      background: #2f6fbd;
-      color: #fff;
+      background: var(--panel-2);
+      color: var(--muted);
+      border: 1px solid var(--line);
       font-size: 13px;
       font-weight: 800;
+      flex: 0 0 auto;
     }
     .explain-section-body {
-      color: #263246;
+      color: var(--text);
     }
     .explain-section-process {
-      background: #f4f8ff;
-      border-left: 5px solid #2f6fbd;
+      background: var(--panel-2);
+      border-left: 4px solid var(--line);
     }
     .explain-section-background,
-    .explain-section-method {
-      background: #f8fbff;
-    }
-    .explain-section-pitfall {
-      background: #fff8eb;
-      border-color: #f1d6a4;
-      border-left: 5px solid #d28a10;
-    }
-    .explain-section-pitfall .explain-section-title {
-      color: #9a6100;
-    }
-    .explain-section-pitfall .explain-section-title::before {
-      background: #d28a10;
-    }
+    .explain-section-method,
+    .explain-section-pitfall,
     .explain-section-conclusion {
-      background: #eef8f2;
-      border-color: #cae8d5;
-      border-left: 5px solid #1d8d55;
+      background: var(--panel);
     }
-    .explain-section-conclusion .explain-section-title {
-      color: #167347;
+    .explain-section-pitfall,
+    .explain-section-conclusion {
+      border-left: 4px solid var(--line);
     }
-    .explain-section-conclusion .explain-section-title::before {
-      background: #1d8d55;
+    .explain-p {
+      margin: .46em 0;
+      text-align: left;
+    }
+    .explain-p:first-child { margin-top: 0; }
+    .explain-p:last-child { margin-bottom: 0; }
+    .explain-formula-line {
+      display: block;
+      text-align: center;
+      margin: 10px 0;
+      padding: 2px 0;
+      overflow-x: auto;
     }
     .explain-paper .mjx-container[jax="SVG"] {
-      margin: 0 .12em;
-      color: #1d2433;
-    }
-    :root.dark .explain-paper,
-    :root.dark .explain-section {
-      color: #1b2536;
+      max-width: 100%;
+      overflow-x: auto;
+      overflow-y: hidden;
     }
     @media (max-width: 600px) {
-      .explain-paper { padding: 16px 14px; font-size: 15px; line-height: 1.8; }
-      .explain-section { padding: 12px; }
+      .explain-paper { padding: 14px 12px; font-size: 15px; line-height: 1.75; }
+      .explain-section { padding: 11px 12px; }
       .explain-section-title { font-size: 15px; }
+      .explain-formula-line { text-align: left; }
     }
   </style>
 </head>
@@ -295,12 +291,50 @@
         }
         if (sections.length < 3) return;
         md.innerHTML = '<div class="explain-paper">' + sections.map(sec => {
-          return `<section class="explain-section explain-section-${sec.kind}"><div class="explain-section-title" data-no="${sec.no}">${sec.title}</div><div class="explain-section-body">${sec.body}</div></section>`;
+          return `<section class="explain-section explain-section-${sec.kind}"><div class="explain-section-title" data-no="${sec.no}">${sec.title}</div><div class="explain-section-body">${formatBody(sec.body, sec.kind)}</div></section>`;
         }).join('') + '</div>';
         md.dataset.paperized = '1';
         if (window.MathJax && typeof MathJax.typesetPromise === 'function') {
           MathJax.typesetPromise([md]).catch(() => {});
         }
+      }
+      function formatBody(body, kind) {
+        const normalized = body.replace(/<br\s*\/?>(\s*)/gi, '\n').replace(/\s*\n\s*/g, '\n').trim();
+        const segments = splitText(normalized, kind);
+        return segments.map(seg => {
+          const s = seg.trim();
+          if (!s) return '';
+          if (isFormulaOnly(s)) return `<div class="explain-formula-line">${s}</div>`;
+          return `<p class="explain-p">${s}</p>`;
+        }).join('');
+      }
+      function splitText(text, kind) {
+        const primary = splitByPunctuation(text, '。；');
+        const result = [];
+        for (const item of primary) {
+          if (item.length > 110 && kind === 'process') result.push(...splitByPunctuation(item, '，'));
+          else result.push(item);
+        }
+        return result;
+      }
+      function splitByPunctuation(text, puncts) {
+        const out = [];
+        let buf = '';
+        let inMath = false;
+        for (let i = 0; i < text.length; i++) {
+          const ch = text[i];
+          if (ch === '$') inMath = !inMath;
+          buf += ch;
+          if (!inMath && puncts.includes(ch)) {
+            out.push(buf);
+            buf = '';
+          }
+        }
+        if (buf.trim()) out.push(buf);
+        return out;
+      }
+      function isFormulaOnly(s) {
+        return /^\s*\$[^$]+\$\s*[。；，,]?\s*$/.test(s);
       }
     })();
   </script>
