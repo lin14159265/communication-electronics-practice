@@ -31,17 +31,6 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     typesetMathSoon();
-    document.body.addEventListener('click', (event) => {
-      const btn = event.target.closest('[data-toggle-original]');
-      if (!btn) return;
-      const box = btn.closest('.formula-converted');
-      const original = box && box.querySelector('.formula-original');
-      if (!original) return;
-      const show = original.hidden;
-      original.hidden = !show;
-      btn.textContent = show ? '隐藏原图' : '查看原图';
-      typesetMathSoon();
-    });
   });
 
   function overrideMarkdownRenderer() {
@@ -62,9 +51,8 @@
   function renderImageOrFormula(alt, rawSrc) {
     const src = normalizeSrc(rawSrc);
     const formula = FORMULA_IMAGE_LATEX[src];
-    const originalImg = `<img class="md-img" src="${escapeAttrLocal(src)}" alt="${escapeAttrLocal(alt || '题目图片/公式')}" loading="lazy">`;
-    if (!formula) return originalImg;
-    return `<span class="formula-converted"><span class="formula-latex">$${formula}$</span><button type="button" class="formula-original-btn" data-toggle-original="1">查看原图</button><span class="formula-original" hidden>${originalImg}</span></span>`;
+    if (formula) return `<span class="formula-converted"><span class="formula-latex">$${formula}$</span></span>`;
+    return `<img class="md-img" src="${escapeAttrLocal(src)}" alt="${escapeAttrLocal(alt || '题目图片/公式')}" loading="lazy">`;
   }
 
   function normalizeSrc(src) {
@@ -101,11 +89,8 @@
   function injectMathStyles() {
     const style = document.createElement('style');
     style.textContent = `
-      .formula-converted { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; vertical-align: middle; }
+      .formula-converted { display: inline-flex; align-items: center; flex-wrap: wrap; vertical-align: middle; }
       .formula-latex { display: inline-block; vertical-align: middle; }
-      .formula-original-btn { border: 1px solid var(--border, #d7dce8); border-radius: 999px; background: var(--card, #fff); color: var(--muted, #667085); font-size: 12px; padding: 3px 8px; cursor: pointer; }
-      .formula-original { display: inline-flex; align-items: center; padding: 3px 6px; border: 1px dashed var(--border, #d7dce8); border-radius: 8px; background: rgba(127,127,127,.06); }
-      .formula-original[hidden] { display: none !important; }
       .mjx-container { overflow-x: auto; overflow-y: hidden; max-width: 100%; }
       .option .mjx-container { max-width: 100%; }
     `;
