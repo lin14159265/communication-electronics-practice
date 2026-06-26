@@ -1,9 +1,10 @@
-const CACHE_NAME = 'ce-practice-v6';
+const CACHE_NAME = 'ce-practice-v7';
 const ASSETS = [
   "index.html",
   "styles.css",
   "app.js",
   "questions.js",
+  "mathjax-support.js",
   "manifest.webmanifest",
   "icon.svg",
   "assets/img_001eb421a9f2.png",
@@ -41,17 +42,52 @@ const ASSETS = [
   "assets/img_f5e41cb4a5e2.png",
   "assets/img_f7f2ab311a49.png"
 ];
+
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting()));
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(cache => cache.addAll(ASSETS))
+      .then(() => self.skipWaiting())
+  );
 });
+
 self.addEventListener('activate', event => {
-  event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))).then(() => self.clients.claim()));
+  event.waitUntil(
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
+  );
 });
+
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
-  event.respondWith(caches.match(event.request).then(cached => cached || fetch(event.request).then(resp => {
-    const copy = resp.clone();
-    caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
-    return resp;
-  }).catch(() => caches.match('index.html'))));
+
+  const url = new URL(event.request.url);
+  const isSameOrigin = url.origin === self.location.origin;
+  const isFreshCritical = isSameOrigin && /\.(html|js|css|webmanifest)$/.test(url.pathname);
+
+  if (isFreshCritical) {
+    event.respondWith(networkFirst(event.request));
+    return;
+  }
+
+  event.respondWith(cacheFirst(event.request));
 });
+
+function networkFirst(request) {
+  return fetch(request)
+    .then(resp => {
+      const copy = resp.clone();
+      caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
+      return resp;
+    })
+    .catch(() => caches.match(request).then(cached => cached || caches.match('index.html')));
+}
+
+function cacheFirst(request) {
+  return caches.match(request).then(cached => cached || fetch(request).then(resp => {
+    const copy = resp.clone();
+    caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
+    return resp;
+  }).catch(() => caches.match('index.html')));
+}
