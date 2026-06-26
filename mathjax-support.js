@@ -19,12 +19,18 @@
     'assets/img_d7263ffc61d5.png': 'u_c(t)=U_{cm}\\cos\\omega_ct',
     'assets/img_f7f2ab311a49.png': 'u_c(t)=2\\cos4\\pi\\times10^6t\\;(V)',
     'assets/img_18a1e87de339.png': 'u_L=0.15(1+0.3\\cos2\\pi\\times10^3t)\\cos2\\pi\\times10^6t\\;(V)',
-    'assets/img_a7a65b2d4c35.png': 'u_{AM}(t)=10(1+0.3\\cos2\\pi\\times10^3t)\\cos2\\pi\\times10^6t'
+    'assets/img_a7a65b2d4c35.png': 'u_{AM}(t)=10(1+0.3\\cos2\\pi\\times10^3t)\\cos2\\pi\\times10^6t',
+    'assets/img_f0654e96376a.jpg': '\\omega_L=\\omega_0',
+    'assets/img_03877ddcd255.jpg': '\\varphi_e(t)=\\varphi_{e\\infty}',
+    'assets/img_f3b932d6ba8d.jpg': '\\varphi_e(t)=0',
+    'assets/img_60447fd57e2b.jpg': '\\Delta\\omega=\\Delta\\omega_L',
+    'assets/img_d035fb613b12.png': 'u_s(t)=U_s\\cos\\omega_s t\\cos\\Omega t'
   };
 
   let typesetTimer = 0;
   let typesetChain = Promise.resolve();
 
+  sanitizeQuestionTexts();
   injectMathStyles();
   overrideMarkdownRenderer();
   wrapRenderFunctions();
@@ -32,6 +38,68 @@
   document.addEventListener('DOMContentLoaded', () => {
     typesetMathSoon();
   });
+
+  function sanitizeQuestionTexts() {
+    const questions = window.CE_QUESTIONS || [];
+    questions.forEach((q) => {
+      if (q && q.explanation && typeof q.explanation.text === 'string') {
+        q.explanation.text = cleanExplanationText(q.explanation.text, q);
+      }
+    });
+  }
+
+  function cleanExplanationText(text, q) {
+    const images = Array.isArray(q.images) ? q.images : [];
+    let imageCursor = 0;
+    let removedImageSection = false;
+    let imageSectionNumber = 3;
+    let skippingImageSection = false;
+    const cleanedLines = [];
+
+    String(text || '')
+      .replace(/\n+\s*---\s*$/g, '')
+      .split(/\n/)
+      .forEach((line) => {
+        const imageHeader = line.match(/^\s*(\d+)\.\s*图片\/公式\/电路图信息：?\s*$/);
+        if (imageHeader) {
+          removedImageSection = true;
+          imageSectionNumber = Number(imageHeader[1]) || 3;
+          skippingImageSection = true;
+          return;
+        }
+        if (skippingImageSection) {
+          if (/^\s*\d+\.\s+/.test(line)) {
+            skippingImageSection = false;
+            cleanedLines.push(renumberLine(line, imageSectionNumber));
+          }
+          return;
+        }
+        if (/题库提取_assets\//.test(line) || /已检查，可见，尺寸/.test(line)) {
+          removedImageSection = true;
+          return;
+        }
+        cleanedLines.push(removedImageSection ? renumberLine(line, imageSectionNumber) : line);
+      });
+
+    return cleanedLines
+      .join('\n')
+      .replace(/`?题库提取_assets\/[^`\s，。；：)]+`?/g, '题图')
+      .replace(/已检查，可见，尺寸\s*\d+×\d+，?/g, '')
+      .replace(/\[图\/公式\]/g, () => {
+        const img = images[imageCursor++];
+        const formula = img && FORMULA_IMAGE_LATEX[normalizeSrc(img.src || img)];
+        return formula ? `$${formula}$` : '题图';
+      })
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+  }
+
+  function renumberLine(line, removedNumber) {
+    return line.replace(/^(\s*)(\d+)(\.\s+)/, (_, prefix, num, suffix) => {
+      const n = Number(num);
+      return prefix + (n > removedNumber ? n - 1 : n) + suffix;
+    });
+  }
 
   function overrideMarkdownRenderer() {
     window.renderMarkdown = function renderMarkdownWithLatex(md) {
